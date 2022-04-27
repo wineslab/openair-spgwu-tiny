@@ -1,0 +1,9 @@
+[  5%] Built target UDP
+[ 10%] Built target 3GPP_COMMON_TYPES
+[ 17%] Built target PFCP
+[ 25%] Built target GTPV1U
+[ 41%] Built target SPGW_SWITCH
+[ 79%] Built target SPGWU
+[ 87%] Built target CN_UTILS
+[ 89%] Linking CXX executable spgwu
+[100%] Built target spgwu

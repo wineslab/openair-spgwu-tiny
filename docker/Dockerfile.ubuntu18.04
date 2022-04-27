@@ -55,14 +55,14 @@ COPY . /openair-spgwu-tiny
 # Installing and Building SPGW-U-TINY
 WORKDIR /openair-spgwu-tiny/build/scripts
 RUN ./build_spgwu --install-deps --force
-RUN ./build_spgwu --clean --build-type Release --jobs --Verbose && \
+RUN ./build_spgwu --clean --build-type Debug --jobs --Verbose && \
     ldd /openair-spgwu-tiny/build/spgw_u/build/spgwu && \
     mv /openair-spgwu-tiny/build/spgw_u/build/spgwu /openair-spgwu-tiny/build/spgw_u/build/oai_spgwu
 
 #---------------------------------------------------------------------
 # TARGET IMAGE
 #---------------------------------------------------------------------
-FROM ubuntu:bionic as oai-spgwu-tiny
+FROM ubuntu:bionic as oai-spgwu-debug
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
 # We install some debug tools for the moment in addition of mandatory libraries

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libSPGW_SWITCH.a  CMakeFiles/SPGW_SWITCH.dir/pfcp_far.cpp.o CMakeFiles/SPGW_SWITCH.dir/pfcp_pdr.cpp.o CMakeFiles/SPGW_SWITCH.dir/pfcp_session.cpp.o CMakeFiles/SPGW_SWITCH.dir/pfcp_switch.cpp.o CMakeFiles/SPGW_SWITCH.dir/spgwu_s1u.cpp.o
+/usr/bin/ranlib libSPGW_SWITCH.a

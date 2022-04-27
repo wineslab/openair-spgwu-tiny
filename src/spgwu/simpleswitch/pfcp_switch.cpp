@@ -464,13 +464,22 @@ bool pfcp_switch::get_pfcp_ul_pdrs_by_up_teid(
 bool pfcp_switch::get_pfcp_dl_pdrs_by_ue_ip(
     const uint32_t ue_ip,
     std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>>& pdrs) const {
+  Logger::pfcp_switch().info( "get_pfcp_dl_pdrs_by_ue_ip called...");
   folly::AtomicHashMap<
       uint32_t, std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>>>::
       const_iterator pit = ue_ipv4_hbo2pfcp_pdr.find(ue_ip);
-  if (pit == ue_ipv4_hbo2pfcp_pdr.end())
-    return false;
-  else {
+  if (pit == ue_ipv4_hbo2pfcp_pdr.end()){
+    // return false;
+	Logger::pfcp_switch().info( "PDRS end reached, returning begin of the hashmap... ");
+	pit = ue_ipv4_hbo2pfcp_pdr.begin();
+	pdrs = pit->second;
+//        Logger::pfcp_switch().info("%s", pit.second->to_string());
+	return true;
+  }else {
+    Logger::pfcp_switch().info( "PDR found");
     pdrs = pit->second;
+//    Logger::pfcp_switch().info( "Printing the pdr returned... ");
+//    Logger::pfcp_switch().info("%s", pit->second->to_string());
     return true;
   }
 }
@@ -1012,6 +1021,7 @@ void pfcp_switch::pfcp_session_look_up_pack_in_core(
   std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>> pdrs;
   if (iph->version == 4) {
     uint32_t ue_ip = be32toh(iph->daddr);
+    Logger::pfcp_switch().info("about to call get pdrs...");
     if (get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)) {
       bool nocp = false;
       bool buff = false;

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libGTPV1U.a  CMakeFiles/GTPV1U.dir/3gpp_29.281.cpp.o CMakeFiles/GTPV1U.dir/gtpv1u.cpp.o
+/usr/bin/ranlib libGTPV1U.a

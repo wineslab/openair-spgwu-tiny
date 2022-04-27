@@ -1,0 +1,2 @@
+/usr/bin/ar qc libSPGWU.a  CMakeFiles/SPGWU.dir/spgwu_pfcp_association.cpp.o CMakeFiles/SPGWU.dir/spgwu_app.cpp.o CMakeFiles/SPGWU.dir/spgwu_config.cpp.o CMakeFiles/SPGWU.dir/spgwu_sx.cpp.o CMakeFiles/SPGWU.dir/spgwu_profile.cpp.o CMakeFiles/SPGWU.dir/spgwu_nrf.cpp.o
+/usr/bin/ranlib libSPGWU.a
