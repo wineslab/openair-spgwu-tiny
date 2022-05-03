@@ -99,8 +99,9 @@ bool pfcp_pdr::look_up_pack_in_core(
       return false;
     }
     if (pdi.second.ue_ip_address.second.ipv4_address.s_addr != iph->daddr) {
-      Logger::pfcp_switch().info( "look_up_pack_in_core failed PDR id %4x, cause PDR ue_ip_address %8X do not match IP dest %8X of packet ",pdr_id.rule_id, pdi.second.ue_ip_address.second.ipv4_address.s_addr,iph->daddr);
-      return false;
+      //Logger::pfcp_switch().info( "look_up_pack_in_core failed PDR id %4x, cause PDR ue_ip_address %8X do not match IP dest %8X of packet ",pdr_id.rule_id, pdi.second.ue_ip_address.second.ipv4_address.s_addr,iph->daddr);
+        Logger::pfcp_switch().info( "Warning: look_up_pack_in_core ue_ip_address %8X do not match IP dest %8X of packet ",pdr_id.rule_id, pdi.second.ue_ip_address.second.ipv4_address.s_addr,iph->daddr);
+        return true;
     }
   }
   // SDF filters TODO vector

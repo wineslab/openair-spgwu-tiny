@@ -18,6 +18,7 @@ echo "Copying files..."
 docker cp ./build/spgw_u/build/oai_spgwu temp_container:/openair-spgwu-tiny/bin
 echo "Committing back to image..."
 docker commit temp_container oai-spgwu-debug:debug
+docker rm temp_container
 echo "Done"
 }
 

@@ -34,6 +34,7 @@
 #include "spgwu_config.hpp"
 #include "spgwu_pfcp_association.hpp"
 #include "spgwu_s1u.hpp"
+#include "pstream.h"
 
 #include <algorithm>
 #include <fstream>  // std::ifstream
@@ -48,6 +49,7 @@
 #include <linux/if_tun.h>
 #include <stdexcept>
 #include <net/ethernet.h>
+#include <arpa/inet.h>
 
 using namespace pfcp;
 using namespace gtpv1u;
@@ -461,7 +463,7 @@ bool pfcp_switch::get_pfcp_ul_pdrs_by_up_teid(
   }
 }
 //------------------------------------------------------------------------------
-bool pfcp_switch::get_pfcp_dl_pdrs_by_ue_ip(
+bool pfcp_switch::get_pfcp_dl_pdrs_by_ue_ip( // TODO clean up
     const uint32_t ue_ip,
     std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>>& pdrs) const {
   Logger::pfcp_switch().info( "get_pfcp_dl_pdrs_by_ue_ip called...");
@@ -469,8 +471,8 @@ bool pfcp_switch::get_pfcp_dl_pdrs_by_ue_ip(
       uint32_t, std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>>>::
       const_iterator pit = ue_ipv4_hbo2pfcp_pdr.find(ue_ip);
   if (pit == ue_ipv4_hbo2pfcp_pdr.end()){
-    // return false;
-	Logger::pfcp_switch().info( "PDRS end reached, returning begin of the hashmap... ");
+    Logger::pfcp_switch().info( "PDRS end reached, returning begin of the hashmap... ");
+    return false;
 	pit = ue_ipv4_hbo2pfcp_pdr.begin();
 	pdrs = pit->second;
 //        Logger::pfcp_switch().info("%s", pit.second->to_string());
@@ -1012,77 +1014,141 @@ void pfcp_switch::pfcp_session_look_up_pack_in_access(
     const endpoint& r_endpoint, const uint32_t tunnel_id) {
   // TODO
 }
+
+//------------------------------------------------------------------------------
+in_addr_t pfcp_switch::lookup_daddr_os(struct iphdr* iph){
+
+    char raddr[INET_ADDRSTRLEN];
+    std::ostringstream cmd_s_stream;
+    std::string line;
+    inet_ntop(AF_INET, &iph->daddr, raddr, INET_ADDRSTRLEN);
+    in_addr_t nh;
+
+    Logger::pfcp_switch().info("Looking up address %s...\n",raddr);
+    // build command
+    cmd_s_stream << "ip route get " << raddr << " | head -n 1 | cut -d ' ' -f3";
+    // send command
+    redi::ipstream proc(cmd_s_stream.str(), redi::pstreams::pstdout | redi::pstreams::pstderr);
+
+    // check if stderr
+    while (std::getline(proc.err(), line)) {
+        std::cout << "Lookup error, printing stderr:.." << '\n';
+        std::cout << "stderr: " << line << '\n';
+        return 0;
+    }
+
+    // if reading stdout stopped at EOF then reset the state:
+    if (proc.eof() && proc.fail())
+        proc.clear();
+
+    // read child's stdout
+    while (std::getline(proc.out(), line)) {
+        nh = inet_addr(line.c_str());
+        //printf("Next hop found: %s i.e. %d\n",line.c_str(), nh);
+        //std::cout << "stdout: " << line << '\n';
+        //inet_pton(AF_INET,line.c_str(),&(sa.sin_addr));
+        return nh;
+    }
+    return 0;
+}
 //------------------------------------------------------------------------------
 void pfcp_switch::pfcp_session_look_up_pack_in_core(
-    const char* buffer, const std::size_t num_bytes) {
-  // Logger::pfcp_switch().info( "pfcp_session_look_up_pack_in_core %d bytes",
-  // num_bytes);
-  struct iphdr* iph = (struct iphdr*) buffer;
-  std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>> pdrs;
-  if (iph->version == 4) {
-    uint32_t ue_ip = be32toh(iph->daddr);
-    Logger::pfcp_switch().info("about to call get pdrs...");
-    if (get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)) {
-      bool nocp = false;
-      bool buff = false;
-      for (std::vector<std::shared_ptr<pfcp::pfcp_pdr>>::iterator it =
-               pdrs->begin();
-           it < pdrs->end(); ++it) {
-        if ((*it)->look_up_pack_in_core(iph, num_bytes)) {
-          std::shared_ptr<pfcp::pfcp_session> ssession = {};
-          uint64_t lseid                               = 0;
-          if ((*it)->get(lseid)) {
-            if (get_pfcp_session_by_up_seid(lseid, ssession)) {
-              pfcp::far_id_t far_id = {};
-              if ((*it)->get(far_id)) {
-                std::shared_ptr<pfcp::pfcp_far> sfar = {};
-                uint8_t qfi                          = ssession->qfi;
-                //#if TRACE_IS_ON
-                //                Logger::pfcp_switch().trace(
-                //                "pfcp_session_look_up_pack_in_core %d bytes,
-                //                far id %08X", num_bytes, far_id);
-                //#endif
-                if (ssession->get(far_id.far_id, sfar)) {
-                  //#if TRACE_IS_ON
-                  //                  Logger::pfcp_switch().trace(
-                  //                  "pfcp_session_look_up_pack_in_core %d
-                  //                  bytes, got far, far id %08X", num_bytes,
-                  //                  far_id);
-                  //#endif
-                  sfar->apply_forwarding_rules(iph, num_bytes, nocp, buff, qfi);
-                  if (buff) {
-                    //#if TRACE_IS_ON
-                    //                    Logger::pfcp_switch().trace(
-                    //                    "Buffering %d bytes, far id %08X",
-                    //                    num_bytes, far_id);
-                    //#endif
-                    (*it)->buffering_requested(buffer, num_bytes);
-                  }
-                  if (nocp) {
-                    //#if TRACE_IS_ON
-                    //                    Logger::pfcp_switch().trace( "Notify
-                    //                    CP %d bytes, far id %08X", num_bytes,
-                    //                    far_id);
-                    //#endif
-                    (*it)->notify_cp_requested(ssession);
-                  }
+        const char* buffer, const std::size_t num_bytes) {
+    // Logger::pfcp_switch().info( "pfcp_session_look_up_pack_in_core %d bytes",
+    // num_bytes);
+    struct iphdr* iph = (struct iphdr*) buffer;
+    std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>> pdrs;
+    std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>> pdrs_temp;
+    bool pdr_found = false;
+
+    if (iph->version == 4) {
+        uint32_t ue_ip = be32toh(iph->daddr);
+        Logger::pfcp_switch().info("calling first round of lookup...");
+        if (!get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)){
+            Logger::pfcp_switch().info("got a false...");
+            Logger::pfcp_switch().info("pdrs not found for destination ip, looking up routing table...\n");
+            in_addr_t nh;
+            // lookup rtable
+            nh = pfcp_switch::lookup_daddr_os(iph);
+            Logger::pfcp_switch().info("The lookup returned %d, calling get_pfcp_dl_pdrs_by_ue_ip again with nh...\n",nh);
+            if (nh!=0){
+                pdrs.reset();
+                if (get_pfcp_dl_pdrs_by_ue_ip(be32toh(nh), pdrs)){
+                    Logger::pfcp_switch().info("pdr found correctly, switching to new ue_ip...");
+                    ue_ip = be32toh(nh);
+                    pdr_found = true;
+                } else {
+                    Logger::pfcp_switch().info("pdr not found again...");
                 }
-              }
+            }else{
+                Logger::pfcp_switch().info("Kernel lookup failed");
             }
-          }
-          return;
         } else {
-          Logger::pfcp_switch().info(
-              "look_up_pack_in_core failed PDR id %4x ", (*it)->pdr_id.rule_id);
+            // the pdr was found at the first round
+            pdr_found = true;
         }
-      }
+        //if (get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)) {
+        if (pdr_found) {
+            bool nocp = false;
+            bool buff = false;
+            for (std::vector<std::shared_ptr<pfcp::pfcp_pdr>>::iterator it =
+                                                                                pdrs->begin();
+                    it < pdrs->end(); ++it) {
+                if ((*it)->look_up_pack_in_core(iph, num_bytes)) {
+                    std::shared_ptr<pfcp::pfcp_session> ssession = {};
+                    uint64_t lseid                               = 0;
+                    if ((*it)->get(lseid)) {
+                        if (get_pfcp_session_by_up_seid(lseid, ssession)) {
+                            pfcp::far_id_t far_id = {};
+                            if ((*it)->get(far_id)) {
+                                std::shared_ptr<pfcp::pfcp_far> sfar = {};
+                                uint8_t qfi                          = ssession->qfi;
+                                //#if TRACE_IS_ON
+                                //                Logger::pfcp_switch().trace(
+                                //                "pfcp_session_look_up_pack_in_core %d bytes,
+                                //                far id %08X", num_bytes, far_id);
+                                //#endif
+                                if (ssession->get(far_id.far_id, sfar)) {
+                                    //#if TRACE_IS_ON
+                                    //                  Logger::pfcp_switch().trace(
+                                    //                  "pfcp_session_look_up_pack_in_core %d
+                                    //                  bytes, got far, far id %08X", num_bytes,
+                                    //                  far_id);
+                                    //#endif
+                                    sfar->apply_forwarding_rules(iph, num_bytes, nocp, buff, qfi);
+                                    if (buff) {
+                                        //#if TRACE_IS_ON
+                                        //                    Logger::pfcp_switch().trace(
+                                        //                    "Buffering %d bytes, far id %08X",
+                                        //                    num_bytes, far_id);
+                                        //#endif
+                                        (*it)->buffering_requested(buffer, num_bytes);
+                                    }
+                                    if (nocp) {
+                                        //#if TRACE_IS_ON
+                                        //                    Logger::pfcp_switch().trace( "Notify
+                                        //                    CP %d bytes, far id %08X", num_bytes,
+                                        //                    far_id);
+                                        //#endif
+                                        (*it)->notify_cp_requested(ssession);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return;
+                } else {
+                    Logger::pfcp_switch().info(
+                            "look_up_pack_in_core failed PDR id %4x ", (*it)->pdr_id.rule_id);
+                }
+            }
+        } else {
+            Logger::pfcp_switch().info(
+                    "pfcp_session_look_up_pack_in_core UE IP %8x not found", ue_ip);
+        }
+    } else if (iph->version == 6) {
+        // TODO;
     } else {
-      Logger::pfcp_switch().info(
-          "pfcp_session_look_up_pack_in_core UE IP %8x not found", ue_ip);
+        Logger::pfcp_switch().info("Unknown IP version %d packet", iph->version);
     }
-  } else if (iph->version == 6) {
-    // TODO;
-  } else {
-    Logger::pfcp_switch().info("Unknown IP version %d packet", iph->version);
-  }
 }

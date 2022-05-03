@@ -22,7 +22,7 @@ set(CMAKE_TARGET_DEFINITIONS_CXX
   "DISPLAY_LICENCE_INFO=0"
   "LOG_OAI=1"
   "PACKAGE_BUGREPORT=\"openaircn-user@lists.eurecom.fr\""
-  "PACKAGE_VERSION=\"Branch: develop Abrev. Hash: 985f284 Date: Wed Apr 20 12:29:42 2022 +0200\""
+  "PACKAGE_VERSION=\"Branch: develop Abrev. Hash: f3c5981 Date: Wed Apr 27 22:20:18 2022 +0000\""
   )
 
 # The include file search paths:

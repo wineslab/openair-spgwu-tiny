@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="UnattendedHostPersistenceState">
+    <option name="openedFilesInfos">
+      <list>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="41966" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/src/spgwu/simpleswitch/pfcp_switch.cpp" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="5163" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/src/spgwu/simpleswitch/pfcp_switch.hpp" />
+        </OpenedFileInfo>
+        <OpenedFileInfo>
+          <option name="caretOffset" value="3908" />
+          <option name="fileUrl" value="file://$PROJECT_DIR$/src/spgwu/simpleswitch/pfcp_pdr.cpp" />
+        </OpenedFileInfo>
+      </list>
+    </option>
+  </component>
+</project>

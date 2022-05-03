@@ -151,6 +151,8 @@ class pfcp_switch {
       std::shared_ptr<pfcp::pfcp_pdr>& pdr, const pfcp::fteid_t& in,
       uint8_t& cause);
 
+  in_addr_t lookup_daddr_os(struct iphdr* iph);
+
   void pfcp_session_look_up_pack_in_access(
       struct iphdr* const iph, const std::size_t num_bytes,
       const endpoint& r_endpoint, const uint32_t tunnel_id);
