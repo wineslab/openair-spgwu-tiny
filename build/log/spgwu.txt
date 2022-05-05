@@ -1,11 +1,11 @@
-[  7%] Built target GTPV1U
-[ 15%] Built target PFCP
-[ 20%] Built target UDP
-[ 25%] Built target 3GPP_COMMON_TYPES
-[ 43%] Built target SPGWU
+[  7%] Built target 3GPP_COMMON_TYPES
+[ 10%] Built target UDP
+[ 28%] Built target SPGWU
+[ 35%] Built target PFCP
+[ 43%] Built target GTPV1U
 [ 71%] Built target CN_UTILS
 Scanning dependencies of target SPGW_SWITCH
-[ 74%] Building CXX object simpleswitch/CMakeFiles/SPGW_SWITCH.dir/pfcp_pdr.cpp.o
+[ 74%] Building CXX object simpleswitch/CMakeFiles/SPGW_SWITCH.dir/pfcp_switch.cpp.o
 [ 76%] Linking CXX static library libSPGW_SWITCH.a
 [ 87%] Built target SPGW_SWITCH
 [ 89%] Linking CXX executable spgwu

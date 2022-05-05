@@ -478,7 +478,7 @@ bool pfcp_switch::get_pfcp_dl_pdrs_by_ue_ip( // TODO clean up
 //        Logger::pfcp_switch().info("%s", pit.second->to_string());
 	return true;
   }else {
-    Logger::pfcp_switch().info( "PDR found");
+    //Logger::pfcp_switch().info( "PDR found");
     pdrs = pit->second;
 //    Logger::pfcp_switch().info( "Printing the pdr returned... ");
 //    Logger::pfcp_switch().info("%s", pit->second->to_string());
@@ -1017,14 +1017,19 @@ void pfcp_switch::pfcp_session_look_up_pack_in_access(
 
 //------------------------------------------------------------------------------
 in_addr_t pfcp_switch::lookup_daddr_os(struct iphdr* iph){
-
+    bool override = true;
+    if (override){
+        Logger::pfcp_switch().info("Bypassing lookup\n");
+        std::string ipa = "12.1.1.2";
+        return inet_addr(ipa.c_str());
+    }
     char raddr[INET_ADDRSTRLEN];
     std::ostringstream cmd_s_stream;
     std::string line;
     inet_ntop(AF_INET, &iph->daddr, raddr, INET_ADDRSTRLEN);
     in_addr_t nh;
 
-    Logger::pfcp_switch().info("Looking up address %s...\n",raddr);
+    //Logger::pfcp_switch().info("Looking up address %s...\n",raddr);
     // build command
     cmd_s_stream << "ip route get " << raddr << " | head -n 1 | cut -d ' ' -f3";
     // send command
@@ -1063,29 +1068,37 @@ void pfcp_switch::pfcp_session_look_up_pack_in_core(
 
     if (iph->version == 4) {
         uint32_t ue_ip = be32toh(iph->daddr);
-        Logger::pfcp_switch().info("calling first round of lookup...");
-        if (!get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)){
-            Logger::pfcp_switch().info("got a false...");
-            Logger::pfcp_switch().info("pdrs not found for destination ip, looking up routing table...\n");
+        //Logger::pfcp_switch().info("calling first round of lookup...");
+        // check if ip in range
+        uint32_t netstart = 201392384; // 12.1.1.0
+        uint32_t netend = 201392639; // 12.1.1.254
+        Logger::pfcp_switch().info("netstart %d - netend %d - ip %d\n", netstart,netend, ue_ip);
+
+        if (!((ue_ip >= netstart) && (ue_ip <= netend))){
+            Logger::pfcp_switch().info("Address not in ue range, lookup...\n");
+            // if not in range then lookup
             in_addr_t nh;
             // lookup rtable
             nh = pfcp_switch::lookup_daddr_os(iph);
-            Logger::pfcp_switch().info("The lookup returned %d, calling get_pfcp_dl_pdrs_by_ue_ip again with nh...\n",nh);
+            Logger::pfcp_switch().info("Lookup returned %d\n",nh);
             if (nh!=0){
-                pdrs.reset();
                 if (get_pfcp_dl_pdrs_by_ue_ip(be32toh(nh), pdrs)){
-                    Logger::pfcp_switch().info("pdr found correctly, switching to new ue_ip...");
+                    Logger::pfcp_switch().info("pdr found correctly, switching to new ue_ip\n");
                     ue_ip = be32toh(nh);
                     pdr_found = true;
                 } else {
-                    Logger::pfcp_switch().info("pdr not found again...");
+                    Logger::pfcp_switch().info("pdr not found");
                 }
-            }else{
+            } else {
                 Logger::pfcp_switch().info("Kernel lookup failed");
             }
         } else {
-            // the pdr was found at the first round
-            pdr_found = true;
+            // normal pdr lookup
+            Logger::pfcp_switch().info("Address in ue range, using it...");
+            if (get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)){
+                Logger::pfcp_switch().info("Normal pdr lookup found\n");
+                pdr_found = true;
+            }
         }
         //if (get_pfcp_dl_pdrs_by_ue_ip(ue_ip, pdrs)) {
         if (pdr_found) {

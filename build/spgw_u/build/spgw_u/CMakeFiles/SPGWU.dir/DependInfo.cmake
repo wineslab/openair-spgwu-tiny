@@ -24,7 +24,7 @@ set(CMAKE_TARGET_DEFINITIONS_CXX
   "LOG_OAI=1"
   "PACKAGE_BUGREPORT=\"openaircn-user@lists.eurecom.fr\""
   "PACKAGE_NAME=\"SPGW-U\""
-  "PACKAGE_VERSION=\"Branch: develop Abrev. Hash: f3c5981 Date: Wed Apr 27 22:20:18 2022 +0000\""
+  "PACKAGE_VERSION=\"Branch: develop Abrev. Hash: 4162d71 Date: Tue May 3 21:31:29 2022 +0000\""
   )
 
 # The include file search paths:
