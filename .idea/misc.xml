@@ -4,15 +4,11 @@
     <option name="openedFilesInfos">
       <list>
         <OpenedFileInfo>
-          <option name="caretOffset" value="5163" />
+          <option name="caretOffset" value="5369" />
           <option name="fileUrl" value="file://$PROJECT_DIR$/src/spgwu/simpleswitch/pfcp_switch.hpp" />
         </OpenedFileInfo>
         <OpenedFileInfo>
-          <option name="caretOffset" value="308" />
-          <option name="fileUrl" value="file://$PROJECT_DIR$/src/spgwu/simpleswitch/pfcp_pdr.cpp" />
-        </OpenedFileInfo>
-        <OpenedFileInfo>
-          <option name="caretOffset" value="41546" />
+          <option name="caretOffset" value="39224" />
           <option name="fileUrl" value="file://$PROJECT_DIR$/src/spgwu/simpleswitch/pfcp_switch.cpp" />
         </OpenedFileInfo>
       </list>

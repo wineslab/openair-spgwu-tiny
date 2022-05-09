@@ -387,6 +387,7 @@ pfcp_switch::pfcp_switch()
       ue_ipv4_hbo2pfcp_pdr(PFCP_SWITCH_MAX_PDRS),
       ul_s1u_teid2pfcp_pdr(PFCP_SWITCH_MAX_PDRS),
       up_seid2pfcp_sessions(PFCP_SWITCH_MAX_SESSIONS),
+      ip_lookup_map(256), // init lookup map
       threads_(16),
       socks_r(16),
       sock_w(0) {
@@ -1016,22 +1017,51 @@ void pfcp_switch::pfcp_session_look_up_pack_in_access(
 }
 
 //------------------------------------------------------------------------------
-in_addr_t pfcp_switch::lookup_daddr_os(struct iphdr* iph){
-    bool override = true;
+
+in_addr_t pfcp_switch::lookup_daddr_hp(uint32_t daddr){
+    // search the map
+    // step 1 define and find iterator
+    folly::AtomicHashMap<uint32_t, uint32_t>::const_iterator map_it = ip_lookup_map.find(be32toh(daddr));
+
+    // step 2 check iterator
+    if (map_it == ip_lookup_map.end()){ // entry not found in hm
+        Logger::pfcp_switch().info("Entry not found in hashmap, looking up using os tables\n");
+        uint32_t nh = lookup_daddr_os(daddr);
+        if (nh!=0){ // valid lookup
+            Logger::pfcp_switch().info("Lookup returned %d\n",nh);
+
+            // insert in hashmap before returning
+            std::pair<uint32_t,uint32_t> entry(be32toh(daddr), nh);
+            ip_lookup_map.insert(entry);
+            Logger::pfcp_switch().info("Next hop inserted in map\n");
+            return nh;
+        } else { // not valid lookup, return 0
+        Logger::pfcp_switch().info("Kernel lookup failed");
+        return 0;
+        }
+    } else { // entry found in hp
+        uint32_t nh = map_it->second;
+        Logger::pfcp_switch().info("Entry found in hashmap: %d\n", nh);
+        return nh;
+    }
+      }
+
+in_addr_t pfcp_switch::lookup_daddr_os(uint32_t daddr){
+    bool override = false;
     if (override){
         Logger::pfcp_switch().info("Bypassing lookup\n");
         std::string ipa = "12.1.1.2";
         return inet_addr(ipa.c_str());
     }
-    char raddr[INET_ADDRSTRLEN];
+    char daddr_string[INET_ADDRSTRLEN];
     std::ostringstream cmd_s_stream;
     std::string line;
-    inet_ntop(AF_INET, &iph->daddr, raddr, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &daddr , daddr_string, INET_ADDRSTRLEN);
     in_addr_t nh;
 
-    //Logger::pfcp_switch().info("Looking up address %s...\n",raddr);
+    Logger::pfcp_switch().info("Looking up address %s...\n",daddr_string);
     // build command
-    cmd_s_stream << "ip route get " << raddr << " | head -n 1 | cut -d ' ' -f3";
+    cmd_s_stream << "ip route get " << daddr_string << " | head -n 1 | cut -d ' ' -f3";
     // send command
     redi::ipstream proc(cmd_s_stream.str(), redi::pstreams::pstdout | redi::pstreams::pstderr);
 
@@ -1079,7 +1109,7 @@ void pfcp_switch::pfcp_session_look_up_pack_in_core(
             // if not in range then lookup
             in_addr_t nh;
             // lookup rtable
-            nh = pfcp_switch::lookup_daddr_os(iph);
+            nh = pfcp_switch::lookup_daddr_hp(iph->daddr);
             Logger::pfcp_switch().info("Lookup returned %d\n",nh);
             if (nh!=0){
                 if (get_pfcp_dl_pdrs_by_ue_ip(be32toh(nh), pdrs)){

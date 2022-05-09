@@ -94,6 +94,9 @@ class pfcp_switch {
       uint32_t, std::shared_ptr<std::vector<std::shared_ptr<pfcp::pfcp_pdr>>>>
       ue_ipv4_hbo2pfcp_pdr;
 
+  // lookup table map
+  folly::AtomicHashMap<uint32_t, uint32_t> ip_lookup_map;
+
   // moodycamel::ConcurrentQueue<pfcp::pfcp_session*> create_session_q;
 
   void pdn_worker(const int id, const util::thread_sched_params& sched_params);
@@ -151,7 +154,8 @@ class pfcp_switch {
       std::shared_ptr<pfcp::pfcp_pdr>& pdr, const pfcp::fteid_t& in,
       uint8_t& cause);
 
-  in_addr_t lookup_daddr_os(struct iphdr* iph);
+  in_addr_t lookup_daddr_os(uint32_t daddr);
+  in_addr_t lookup_daddr_hp(uint32_t daddr);
 
   void pfcp_session_look_up_pack_in_access(
       struct iphdr* const iph, const std::size_t num_bytes,
