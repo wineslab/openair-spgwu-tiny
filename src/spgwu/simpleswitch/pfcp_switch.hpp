@@ -154,6 +154,7 @@ class pfcp_switch {
       std::shared_ptr<pfcp::pfcp_pdr>& pdr, const pfcp::fteid_t& in,
       uint8_t& cause);
 
+  void cleanup_iab_map();
   in_addr_t lookup_daddr_os(uint32_t daddr);
   in_addr_t lookup_daddr_hp(uint32_t daddr);
 

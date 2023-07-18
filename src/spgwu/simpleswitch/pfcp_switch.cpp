@@ -1017,7 +1017,14 @@ void pfcp_switch::pfcp_session_look_up_pack_in_access(
 }
 
 //------------------------------------------------------------------------------
+void pfcp_switch::cleanup_iab_map(){
+  Logger::pfcp_switch().info("Cleaning lookup map with %d elements\n", ip_lookup_map.size());
+  ip_lookup_map.clear();
+  Logger::pfcp_switch().info("Lookup map cleaned, now has %d elements\n", ip_lookup_map.size());
+  return;
+}
 
+//------------------------------------------------------------------------------
 in_addr_t pfcp_switch::lookup_daddr_hp(uint32_t daddr){
     // search the map
     // step 1 define and find iterator

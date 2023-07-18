@@ -47,6 +47,8 @@ spgwu_app* spgwu_app_inst             = nullptr;
 spgwu_config spgwu_cfg;
 boost::asio::io_service io_service;
 
+void flush_iab_task(void*);
+
 //------------------------------------------------------------------------------
 void my_app_signal_handler(int s) {
   std::cout << "Caught signal " << s << std::endl;
@@ -135,7 +137,6 @@ int main(int argc, char** argv) {
   // Inter task Interface
   itti_inst = new itti_mw();
   itti_inst->start(spgwu_cfg.itti.itti_timer_sched_params);
-
   // system command
   async_shell_cmd_inst =
       new async_shell_cmd(spgwu_cfg.itti.async_cmd_sched_params);
@@ -162,6 +163,36 @@ int main(int argc, char** argv) {
   // once all udp servers initialized
   io_service.run();
 
+  itti_inst->create_task(TASK_FLUSH_IAB, flush_iab_task, nullptr);
+
   pause();
   return 0;
+}
+
+
+void flush_iab_task(void* args_p) {
+  const task_id_t task_id = TASK_FLUSH_IAB;
+  itti_inst->notify_task_ready(task_id);
+  struct sockaddr_in serAddr, cliAddr;
+  int serSockDes, readStatus, len; 
+  char buff[1024] = {0};
+
+  if((serSockDes = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    perror("socket creation error...\n");
+    exit(-1);
+  }
+
+  serAddr.sin_family = AF_INET;
+  serAddr.sin_port = htons(8080);
+  serAddr.sin_addr.s_addr = INADDR_ANY;
+
+  if((bind(serSockDes, (struct sockaddr*)&serAddr, sizeof(serAddr))) < 0) {
+    perror("binding error...\n");
+    exit(-1);
+  }
+  while(1){
+    readStatus = recvfrom(serSockDes, buff, 1024, 0, (struct sockaddr*)&cliAddr, (socklen_t*)&len);
+    pfcp_switch_inst->cleanup_iab_map();
+  }
+  close(serSockDes);
 }
